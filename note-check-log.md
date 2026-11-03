@@ -34,3 +34,15 @@ Yes. The red/green box now renders as Markdown, so equations display properly an
 | 3 | No way to keep the note aligned with the panel | New setting **Keep note in sync with panel** (default on). Scrolling the panel scrolls the note to the finding at the top of the panel; cursor and focus stay put, and the synced card gets an accent border. Cards carry `data-quote`; the scroll handler is debounced (150 ms) and registered with `registerDomEvent` |
 | 4 | Some previews still showed raw LaTeX: the edit's `find` text cut into the middle of an equation, leaving an unpaired `$` | New pure `previewEdit` widens the preview, within its line, to every math span it cuts into (adding … where it is trimmed), then applies the replacement inside that widened text. If it still can't be balanced (`mathBalanced`), it falls back to raw monospace instead of half-rendered output. Tests cover the exact screenshot case, multiple cut equations, escaped `\$`, and edits that can't be found |
 | 5 | Ticking a checkbox made the panel jump up, more the further down you were | Ticking no longer re-renders the panel; it only updates the **Apply selected (n)** count. Full re-renders (Ignore, Apply, editor edits) now keep the scroll position by holding the panel's previous height until the async Markdown/MathJax rendering finishes, then restoring `scrollTop` |
+
+### Summary
+
+All five are done in version 1.0.2, which is installed and running in VaultSchar (pushed as `82808fa`). Lint is clean and all 43 tests pass, 8 of them new.
+
+1. **Text 25% larger:** everything in the panel is scaled up together, buttons and the input box included.
+2. **Jump below the target:** clicking a quoted link now puts the cursor at the start of the line below the target. Nothing is selected, and the target is still scrolled into view.
+3. **Note follows the panel:** there's a new setting, **Keep note in sync with panel**, on by default. As you scroll the panel, the note scrolls to whichever finding is at the top of the panel, and that card gets an accent border. Your cursor and focus stay where they are. You can turn it off in Settings → Note Check.
+4. **Equations in the red/green preview:** in your screenshot, Claude's edit started partway into an equation, so the `$` signs didn't pair up. The preview now widens to include the whole equation (with … marking anything trimmed), so it renders properly. If an equation still can't be completed, it shows as plain monospace instead of half-rendered.
+5. **Panel jumping when you tick a box:** ticking no longer redraws the panel, it just updates the count on **Apply selected**. Ignoring, applying, and typing in the note do still redraw it, but now they keep your scroll position.
+
+Before reloading I checked that nothing was open: your three reviews from this session were all stamped. I haven't seen the new equation preview on a live review yet, because the note in your screenshot is already fixed. The tests cover that exact case.
