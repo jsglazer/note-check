@@ -11,6 +11,8 @@ export interface NoteCheckSettings {
 	rulesPath: string;
 	autoRecheck: boolean;
 	autoStamp: boolean;
+	/** Scroll the note to follow the card at the top of the review panel. */
+	autoScroll: boolean;
 	/** Ignored-finding fingerprints per note path. */
 	ignored: Record<string, string[]>;
 }
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: NoteCheckSettings = {
 	rulesPath: 'Classes/Note Review Rules.md',
 	autoRecheck: false,
 	autoStamp: false,
+	autoScroll: true,
 	ignored: {},
 };
 
@@ -101,6 +104,18 @@ export class NoteCheckSettingTab extends PluginSettingTab {
 						s.rulesPath = value.trim();
 						await this.plugin.saveSettings();
 					}),
+			);
+
+		new Setting(containerEl)
+			.setName('Keep note in sync with panel')
+			.setDesc(
+				'As you scroll the review panel, scroll the note to the finding at the top of the panel.',
+			)
+			.addToggle((t) =>
+				t.setValue(s.autoScroll).onChange(async (value) => {
+					s.autoScroll = value;
+					await this.plugin.saveSettings();
+				}),
 			);
 
 		new Setting(containerEl)

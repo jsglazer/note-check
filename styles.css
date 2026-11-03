@@ -1,4 +1,8 @@
 .note-check {
+	/* 25% larger than the sidebar default; everything inside sizes in em relative to this. */
+	font-size: 125%;
+	/* Set while async Markdown renders so a re-render does not lose the scroll position. */
+	min-height: var(--note-check-hold-height, 0px);
 	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-2);
@@ -11,7 +15,7 @@
 }
 .note-check-title {
 	font-weight: var(--font-semibold);
-	font-size: var(--font-ui-medium);
+	font-size: 1.1em;
 }
 .note-check-controls,
 .note-check-actions,
@@ -25,16 +29,16 @@
 .note-check-empty,
 .note-check-status {
 	color: var(--text-muted);
-	font-size: var(--font-ui-small);
+	font-size: 0.9em;
 }
 .note-check-error {
 	color: var(--text-error);
-	font-size: var(--font-ui-small);
+	font-size: 0.9em;
 }
 .note-check-badge {
 	border-radius: var(--radius-s);
 	padding: 0 var(--size-4-1);
-	font-size: var(--font-ui-smaller);
+	font-size: 0.8em;
 	font-weight: var(--font-semibold);
 	background: var(--background-modifier-hover);
 }
@@ -65,14 +69,14 @@
 .note-check-heading,
 .note-check-tag {
 	color: var(--text-muted);
-	font-size: var(--font-ui-smaller);
+	font-size: 0.8em;
 }
 .note-check-tag {
 	font-style: italic;
 }
 .note-check-quote {
 	font-family: var(--font-monospace);
-	font-size: var(--font-ui-small);
+	font-size: 0.9em;
 	cursor: pointer;
 	white-space: pre-wrap;
 	word-break: break-word;
@@ -86,7 +90,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-1);
-	font-size: var(--font-ui-small);
+	font-size: 1em;
 	word-break: break-word;
 	background: var(--background-secondary);
 	border-radius: var(--radius-s);
@@ -135,7 +139,7 @@
 .note-check-msg {
 	border-radius: var(--radius-s);
 	padding: var(--size-4-1) var(--size-4-2);
-	font-size: var(--font-ui-small);
+	font-size: 0.9em;
 }
 .note-check-msg-user {
 	background: var(--background-modifier-hover);
@@ -156,5 +160,18 @@
 .note-check-usage,
 .note-check-handled {
 	color: var(--text-muted);
-	font-size: var(--font-ui-smaller);
+	font-size: 0.8em;
+}
+.note-check button,
+.note-check select,
+.note-check textarea,
+.note-check-tick {
+	font-size: 0.9em;
+}
+.note-check-edits .is-raw {
+	font-family: var(--font-monospace);
+	white-space: pre-wrap;
+}
+.note-check-card.is-synced {
+	border-color: var(--interactive-accent);
 }

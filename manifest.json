@@ -1,7 +1,7 @@
 {
 	"id": "note-check",
 	"name": "Note Check",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"minAppVersion": "1.11.4",
 	"description": "Review notes for technical errors with Claude in a sidebar pane: rendered findings, tick-to-apply fixes, follow-up questions, and a ClaudeCheck stamp.",
 	"author": "Josh Glazer",

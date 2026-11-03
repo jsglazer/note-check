@@ -12,6 +12,7 @@ import {
 import { callClaude } from './claude';
 import { locateQuote } from './core/anchor';
 import { planEdits, planJeLine, type EditGroup, type ResolvedEdit } from './core/edits';
+import { lineBelow, mathBalanced, previewEdit } from './core/preview';
 import {
 	buildAskMessage,
 	buildReviewMessage,
@@ -79,6 +80,17 @@ export class NoteCheckView extends ItemView {
 	private path: string | null = null;
 	private renderScope: Component | null = null;
 	private readonly rerenderSoon = debounce(() => this.render(), 800, true);
+	/** Scroll-sync of the note to the card at the top of the panel. */
+	private readonly syncSoon = debounce(() => this.syncEditorToPanel(), 150, true);
+	/** Inner wrapper rebuilt on each render (contentEl is the scroll container). */
+	private body: HTMLElement | null = null;
+	private renderedPath: string | null = null;
+	private applyBtn: HTMLButtonElement | null = null;
+	private lastSynced: string | null = null;
+	/** Live note text captured at render time, used for previews and anchors. */
+	private liveText: string | null = null;
+	/** Markdown render promises from the current render, awaited to restore scroll. */
+	private pending: Promise<void>[] = [];
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -118,11 +130,15 @@ export class NoteCheckView extends ItemView {
 				this.render();
 			}),
 		);
+		this.registerDomEvent(this.contentEl, 'scroll', () => {
+			if (this.plugin.settings.autoScroll) this.syncSoon();
+		});
 		this.followActive();
 	}
 
 	async onClose(): Promise<void> {
 		this.rerenderSoon.cancel();
+		this.syncSoon.cancel();
 		if (this.renderScope) this.removeChild(this.renderScope);
 		this.renderScope = null;
 	}
@@ -484,7 +500,29 @@ export class NoteCheckView extends ItemView {
 		this.app.workspace.setActiveLeaf(mv.leaf, { focus: true });
 		const from = mv.editor.offsetToPos(loc.range.from);
 		const to = mv.editor.offsetToPos(loc.range.to);
-		mv.editor.setSelection(from, to);
+		// Cursor goes on the line below the target so the target itself isn't selected or highlighted.
+		mv.editor.setCursor({ line: lineBelow(mv.editor.getValue(), loc.range), ch: 0 });
+		mv.editor.scrollIntoView({ from, to }, true);
+	}
+
+	/** Scroll the note to the card at the top of the panel (no cursor or focus change). */
+	private syncEditorToPanel(): void {
+		if (!this.plugin.settings.autoScroll || !this.body) return;
+		const mv = this.markdownView();
+		if (!mv) return;
+		const top = this.contentEl.getBoundingClientRect().top;
+		const cards = Array.from(
+			this.body.querySelectorAll<HTMLElement>('.note-check-card[data-quote]'),
+		);
+		const target = cards.find((c) => c.getBoundingClientRect().bottom > top + 48);
+		const quote = target?.getAttribute('data-quote');
+		if (!target || !quote || quote === this.lastSynced) return;
+		this.lastSynced = quote;
+		for (const c of cards) c.toggleClass('is-synced', c === target);
+		const loc = locateQuote(mv.editor.getValue(), quote);
+		if (loc.status !== 'unique') return;
+		const from = mv.editor.offsetToPos(loc.range.from);
+		const to = mv.editor.offsetToPos(loc.range.to);
 		mv.editor.scrollIntoView({ from, to }, true);
 	}
 
@@ -492,16 +530,39 @@ export class NoteCheckView extends ItemView {
 
 	private md(el: HTMLElement, markdown: string): void {
 		if (!this.renderScope) return;
-		void MarkdownRenderer.render(this.app, markdown, el, this.path ?? '', this.renderScope);
+		this.pending.push(
+			MarkdownRenderer.render(this.app, markdown, el, this.path ?? '', this.renderScope),
+		);
 	}
 
 	render(): void {
 		if (this.renderScope) this.removeChild(this.renderScope);
 		this.renderScope = this.addChild(new Component());
-		const root = this.contentEl;
-		root.empty();
-		root.addClass('note-check');
+		const scroller = this.contentEl;
+		const samePath = this.renderedPath === this.path;
+		const prevTop = samePath ? scroller.scrollTop : 0;
+		const prevHeight = samePath ? (this.body?.offsetHeight ?? 0) : 0;
+		if (!samePath) this.lastSynced = null;
+		this.renderedPath = this.path;
+		this.pending = [];
+		this.applyBtn = null;
+		scroller.empty();
+		scroller.addClass('note-check-scroller');
+		const root = scroller.createDiv({ cls: 'note-check' });
+		this.body = root;
+		// Hold the old height until the async Markdown has rendered, so the scroll position survives.
+		if (prevHeight > 0) root.setCssProps({ '--note-check-hold-height': `${prevHeight}px` });
+		this.build(root);
+		scroller.scrollTop = prevTop;
+		const pending = this.pending;
+		void Promise.allSettled(pending).then(() => {
+			if (this.body !== root) return;
+			scroller.scrollTop = prevTop;
+			root.setCssProps({ '--note-check-hold-height': '0px' });
+		});
+	}
 
+	private build(root: HTMLElement): void {
 		if (!this.path) {
 			root.createDiv({
 				cls: 'note-check-empty',
@@ -567,6 +628,7 @@ export class NoteCheckView extends ItemView {
 		}
 
 		const text = this.editor()?.getValue() ?? null;
+		this.liveText = text;
 		const position = (quote: string): number | null => {
 			if (text === null) return null;
 			const loc = locateQuote(text, quote);
@@ -610,12 +672,9 @@ export class NoteCheckView extends ItemView {
 		}
 
 		const footer = root.createDiv({ cls: 'note-check-footer' });
-		const ticked = [...result.findings, ...result.typos].filter((x) => {
-			const st = review.items.get(x.id);
-			return st?.status === 'open' && st.checked;
-		}).length;
-		const apply = footer.createEl('button', { cls: 'mod-cta', text: `Apply selected (${ticked})` });
-		apply.disabled = ticked === 0 || review.busy;
+		const apply = footer.createEl('button', { cls: 'mod-cta' });
+		this.applyBtn = apply;
+		this.updateApplyButton();
 		apply.addEventListener('click', () => void this.applySelected());
 		if (review.usage.length) {
 			const u = footer.createEl('details', { cls: 'note-check-usage' });
@@ -624,13 +683,40 @@ export class NoteCheckView extends ItemView {
 		}
 	}
 
+	/** Update the Apply button's count without a full re-render (keeps scroll position). */
+	private updateApplyButton(): void {
+		const review = this.review();
+		const btn = this.applyBtn;
+		if (!btn || !review?.result) return;
+		const ticked = [...review.result.findings, ...review.result.typos].filter((x) => {
+			const st = review.items.get(x.id);
+			return st?.status === 'open' && st.checked;
+		}).length;
+		btn.setText(`Apply selected (${ticked})`);
+		btn.disabled = ticked === 0 || review.busy;
+	}
+
 	private renderEdits(parent: HTMLElement, edits: ProposedEdit[]): void {
 		if (!edits.length) return;
 		const box = parent.createDiv({ cls: 'note-check-edits' });
-		// Render both sides as Markdown so LaTeX displays as equations; the raw text stays in the tooltip.
+		// Render both sides as Markdown so LaTeX displays as equations. Fragments that cut into an
+		// equation are widened to the whole equation using the live note; the raw text is the tooltip.
 		for (const e of edits) {
-			this.md(box.createDiv({ cls: 'note-check-del', attr: { title: e.find } }), e.find);
-			this.md(box.createDiv({ cls: 'note-check-ins', attr: { title: e.replace } }), e.replace);
+			const preview = this.liveText !== null ? previewEdit(this.liveText, e) : null;
+			const before = preview?.before ?? e.find;
+			const after = preview?.after ?? e.replace;
+			const renderable = mathBalanced(before) && mathBalanced(after);
+			const del = box.createDiv({ cls: 'note-check-del', attr: { title: e.find } });
+			const ins = box.createDiv({ cls: 'note-check-ins', attr: { title: e.replace } });
+			if (renderable) {
+				this.md(del, before);
+				this.md(ins, after);
+			} else {
+				del.addClass('is-raw');
+				ins.addClass('is-raw');
+				del.setText(before);
+				ins.setText(after);
+			}
 		}
 	}
 
@@ -647,7 +733,7 @@ export class NoteCheckView extends ItemView {
 		row.appendText(` ${label}`);
 		cb.addEventListener('change', () => {
 			state.checked = cb.checked;
-			this.render();
+			this.updateApplyButton();
 		});
 	}
 
@@ -659,7 +745,10 @@ export class NoteCheckView extends ItemView {
 	): void {
 		const st = review.items.get(t.id);
 		if (!st) return;
-		const card = parent.createDiv({ cls: 'note-check-card note-check-typo' });
+		const card = parent.createDiv({
+			cls: 'note-check-card note-check-typo',
+			attr: { 'data-quote': t.quote },
+		});
 		const head = card.createDiv({ cls: 'note-check-card-head' });
 		this.renderCheckbox(head, '', st, t.edits.length > 0);
 		const q = head.createEl('a', { cls: 'note-check-quote', text: t.quote });
@@ -677,7 +766,7 @@ export class NoteCheckView extends ItemView {
 	): void {
 		const st = review.items.get(f.id);
 		if (!st) return;
-		const card = parent.createDiv({ cls: 'note-check-card' });
+		const card = parent.createDiv({ cls: 'note-check-card', attr: { 'data-quote': f.quote } });
 		const head = card.createDiv({ cls: 'note-check-card-head' });
 		head.createSpan({ cls: `note-check-badge sev-${f.severity.toLowerCase()}`, text: f.severity });
 		if (f.heading) head.createSpan({ cls: 'note-check-heading', text: f.heading });
