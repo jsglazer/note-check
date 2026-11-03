@@ -627,9 +627,10 @@ export class NoteCheckView extends ItemView {
 	private renderEdits(parent: HTMLElement, edits: ProposedEdit[]): void {
 		if (!edits.length) return;
 		const box = parent.createDiv({ cls: 'note-check-edits' });
+		// Render both sides as Markdown so LaTeX displays as equations; the raw text stays in the tooltip.
 		for (const e of edits) {
-			box.createDiv({ cls: 'note-check-del', text: `− ${e.find}` });
-			box.createDiv({ cls: 'note-check-ins', text: `+ ${e.replace}` });
+			this.md(box.createDiv({ cls: 'note-check-del', attr: { title: e.find } }), e.find);
+			this.md(box.createDiv({ cls: 'note-check-ins', attr: { title: e.replace } }), e.replace);
 		}
 	}
 

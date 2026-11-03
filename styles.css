@@ -83,19 +83,50 @@
 	margin: var(--size-4-1) 0;
 }
 .note-check-edits {
-	font-family: var(--font-monospace);
-	font-size: var(--font-ui-smaller);
-	white-space: pre-wrap;
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-1);
+	font-size: var(--font-ui-small);
 	word-break: break-word;
 	background: var(--background-secondary);
 	border-radius: var(--radius-s);
 	padding: var(--size-4-1) var(--size-4-2);
+}
+.note-check-del,
+.note-check-ins {
+	position: relative;
+	padding-left: 1.2em;
+	border-left: 3px solid currentColor;
 }
 .note-check-del {
 	color: var(--color-red);
 }
 .note-check-ins {
 	color: var(--color-green);
+}
+.note-check-del::before,
+.note-check-ins::before {
+	position: absolute;
+	left: 0.3em;
+	font-family: var(--font-monospace);
+}
+.note-check-del::before {
+	content: '−';
+}
+.note-check-ins::before {
+	content: '+';
+}
+.note-check-del p,
+.note-check-ins p {
+	margin: 0;
+}
+.note-check-del mjx-container,
+.note-check-ins mjx-container,
+.note-check-del strong,
+.note-check-ins strong,
+.note-check-del em,
+.note-check-ins em {
+	color: inherit;
 }
 .note-check-input {
 	width: 100%;
