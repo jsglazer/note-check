@@ -57,3 +57,14 @@ Before reloading I checked that nothing was open: your three reviews from this s
 |---|---|---|
 | 1 | Text 25% larger was too big | Panel root `font-size` 125% → 115%; inner sizes are relative, so everything follows |
 | 2 | No visual link in the note to the finding being looked at | New `src/cm-highlight.ts`: a CodeMirror 6 state field with line decorations draws a light yellow box (translucent yellow background, thin border, rounded top and bottom) over every line the finding's quote spans. It shows on hover (desktop) or tap/focus (iOS), moves as you move between cards, follows edits, and clears when the pointer leaves the panel, the card disappears (applied/ignored/new review), you switch notes, or the panel closes. Registered with `registerEditorExtension`. This is the only module that uses the undocumented `editor.cm`, checked with `instanceof EditorView` (targeted at Obsidian 1.14.4 / @codemirror/view 6.43.13). Added `@codemirror/state` 6.7.6 and `@codemirror/view` 6.43.13 as exact-pinned devDependencies, matching Obsidian's versions |
+
+### Summary
+
+Both changes are in version 1.0.3 (lint clean, all 43 tests pass, pushed as `e6dc2f9`).
+
+- **Text:** reduced to 15% larger than the original instead of 25%.
+- **Yellow box:** when your mouse is over a card in the panel, the lines of the note that card is about get a light yellow box. On iPhone/iPad, tapping a card does the same. The box moves as you move between cards, stays on the right lines while you edit, and goes away when your mouse leaves the panel or the card is applied or ignored.
+
+The files are copied into VaultSchar but the plugin isn't reloaded yet, because you're partway through a review of "6.2.4 Computing average partial effects" with 8 open items. When you've finished that note, restart Obsidian or tell me to reload it. I haven't seen the yellow box in your vault yet; it appears after that reload.
+
+One choice to check: the box disappears when your mouse leaves the panel, which follows "where my mouse has the focus". If you'd rather it stay on the last card you hovered while you edit those lines in the note, that's a one-line change.
