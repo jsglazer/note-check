@@ -1,6 +1,6 @@
 .note-check {
-	/* 25% larger than the sidebar default; everything inside sizes in em relative to this. */
-	font-size: 125%;
+	/* 15% larger than the sidebar default; everything inside sizes in em relative to this. */
+	font-size: 115%;
 	/* Set while async Markdown renders so a re-render does not lose the scroll position. */
 	min-height: var(--note-check-hold-height, 0px);
 	display: flex;
@@ -174,4 +174,20 @@
 }
 .note-check-card.is-synced {
 	border-color: var(--interactive-accent);
+}
+/* Light yellow box over the note lines of the card under the pointer. */
+.cm-line.note-check-hl {
+	background-color: rgba(var(--color-yellow-rgb), 0.22);
+	border-left: 1px solid rgba(var(--color-yellow-rgb), 0.9);
+	border-right: 1px solid rgba(var(--color-yellow-rgb), 0.9);
+}
+.cm-line.note-check-hl-first {
+	border-top: 1px solid rgba(var(--color-yellow-rgb), 0.9);
+	border-top-left-radius: var(--radius-s);
+	border-top-right-radius: var(--radius-s);
+}
+.cm-line.note-check-hl-last {
+	border-bottom: 1px solid rgba(var(--color-yellow-rgb), 0.9);
+	border-bottom-left-radius: var(--radius-s);
+	border-bottom-right-radius: var(--radius-s);
 }

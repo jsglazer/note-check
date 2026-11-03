@@ -1,4 +1,5 @@
 import { MarkdownView, Notice, Plugin, type WorkspaceLeaf } from 'obsidian';
+import { reviewHighlightExtension } from './cm-highlight';
 import { DEFAULT_SETTINGS, NoteCheckSettingTab, type NoteCheckSettings } from './settings';
 import { NoteCheckView, VIEW_TYPE_NOTE_CHECK, type NoteReview } from './view';
 
@@ -9,6 +10,7 @@ export default class NoteCheckPlugin extends Plugin {
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+		this.registerEditorExtension(reviewHighlightExtension);
 		this.registerView(VIEW_TYPE_NOTE_CHECK, (leaf) => new NoteCheckView(leaf, this));
 		this.addRibbonIcon(
 			'book-open-check',

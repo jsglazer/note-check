@@ -1,6 +1,6 @@
 {
 	"name": "note-check",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Review notes for technical errors with Claude in an Obsidian sidebar pane",
 	"main": "main.js",
 	"scripts": {
@@ -21,6 +21,8 @@
 	"author": "Josh Glazer",
 	"license": "MIT",
 	"devDependencies": {
+		"@codemirror/state": "6.7.6",
+		"@codemirror/view": "6.43.13",
 		"@eslint/js": "^10.0.1",
 		"@types/node": "^25.9.3",
 		"builtin-modules": "^5.2.0",

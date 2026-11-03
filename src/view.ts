@@ -10,6 +10,7 @@ import {
 	type WorkspaceLeaf,
 } from 'obsidian';
 import { callClaude } from './claude';
+import { setReviewHighlight } from './cm-highlight';
 import { locateQuote } from './core/anchor';
 import { planEdits, planJeLine, type EditGroup, type ResolvedEdit } from './core/edits';
 import { lineBelow, mathBalanced, previewEdit } from './core/preview';
@@ -87,6 +88,8 @@ export class NoteCheckView extends ItemView {
 	private renderedPath: string | null = null;
 	private applyBtn: HTMLButtonElement | null = null;
 	private lastSynced: string | null = null;
+	/** Quote of the card under the pointer, highlighted in the note. */
+	private highlighted: string | null = null;
 	/** Live note text captured at render time, used for previews and anchors. */
 	private liveText: string | null = null;
 	/** Markdown render promises from the current render, awaited to restore scroll. */
@@ -130,6 +133,8 @@ export class NoteCheckView extends ItemView {
 				this.render();
 			}),
 		);
+		// Pointer leaving the panel clears the yellow highlight in the note.
+		this.registerDomEvent(this.contentEl, 'mouseleave', () => this.highlight(null));
 		this.registerDomEvent(this.contentEl, 'scroll', () => {
 			if (this.plugin.settings.autoScroll) this.syncSoon();
 		});
@@ -139,6 +144,7 @@ export class NoteCheckView extends ItemView {
 	async onClose(): Promise<void> {
 		this.rerenderSoon.cancel();
 		this.syncSoon.cancel();
+		this.highlight(null);
 		if (this.renderScope) this.removeChild(this.renderScope);
 		this.renderScope = null;
 	}
@@ -148,6 +154,7 @@ export class NoteCheckView extends ItemView {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		const path = view?.file?.path ?? null;
 		if (path && path !== this.path) {
+			this.highlight(null); // clear the box in the note we are leaving
 			this.path = path;
 			this.render();
 		} else if (!this.path) {
@@ -505,6 +512,27 @@ export class NoteCheckView extends ItemView {
 		mv.editor.scrollIntoView({ from, to }, true);
 	}
 
+	/** Draw (or clear) the yellow box over the lines a card is about. */
+	private highlight(quote: string | null): void {
+		if (quote === this.highlighted) return;
+		this.highlighted = quote;
+		const editor = this.editor();
+		if (!editor) return;
+		if (quote === null) {
+			setReviewHighlight(editor, null);
+			return;
+		}
+		const loc = locateQuote(editor.getValue(), quote);
+		setReviewHighlight(editor, loc.status === 'unique' ? loc.range : null);
+	}
+
+	/** Hover (desktop) or tap/focus (mobile) on a card highlights its lines in the note. */
+	private wireHighlight(card: HTMLElement, quote: string): void {
+		card.addEventListener('mouseenter', () => this.highlight(quote));
+		card.addEventListener('focusin', () => this.highlight(quote));
+		card.addEventListener('pointerdown', () => this.highlight(quote));
+	}
+
 	/** Scroll the note to the card at the top of the panel (no cursor or focus change). */
 	private syncEditorToPanel(): void {
 		if (!this.plugin.settings.autoScroll || !this.body) return;
@@ -553,6 +581,11 @@ export class NoteCheckView extends ItemView {
 		// Hold the old height until the async Markdown has rendered, so the scroll position survives.
 		if (prevHeight > 0) root.setCssProps({ '--note-check-hold-height': `${prevHeight}px` });
 		this.build(root);
+		// Drop the highlight if its card is gone (applied, ignored, or a new review).
+		const quotes = Array.from(root.querySelectorAll('.note-check-card[data-quote]')).map((c) =>
+			c.getAttribute('data-quote'),
+		);
+		if (this.highlighted !== null && !quotes.includes(this.highlighted)) this.highlight(null);
 		scroller.scrollTop = prevTop;
 		const pending = this.pending;
 		void Promise.allSettled(pending).then(() => {
@@ -749,6 +782,7 @@ export class NoteCheckView extends ItemView {
 			cls: 'note-check-card note-check-typo',
 			attr: { 'data-quote': t.quote },
 		});
+		this.wireHighlight(card, t.quote);
 		const head = card.createDiv({ cls: 'note-check-card-head' });
 		this.renderCheckbox(head, '', st, t.edits.length > 0);
 		const q = head.createEl('a', { cls: 'note-check-quote', text: t.quote });
@@ -767,6 +801,7 @@ export class NoteCheckView extends ItemView {
 		const st = review.items.get(f.id);
 		if (!st) return;
 		const card = parent.createDiv({ cls: 'note-check-card', attr: { 'data-quote': f.quote } });
+		this.wireHighlight(card, f.quote);
 		const head = card.createDiv({ cls: 'note-check-card-head' });
 		head.createSpan({ cls: `note-check-badge sev-${f.severity.toLowerCase()}`, text: f.severity });
 		if (f.heading) head.createSpan({ cls: 'note-check-heading', text: f.heading });

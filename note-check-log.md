@@ -46,3 +46,14 @@ All five are done in version 1.0.2, which is installed and running in VaultSchar
 5. **Panel jumping when you tick a box:** ticking no longer redraws the panel, it just updates the count on **Apply selected**. Ignoring, applying, and typing in the note do still redraw it, but now they keep your scroll position.
 
 Before reloading I checked that nothing was open: your three reviews from this session were all stamped. I haven't seen the new equation preview on a live review yet, because the note in your screenshot is already fixed. The tests cover that exact case.
+
+## 2026-11-02 23:00 — v1.0.3: text +15%, yellow box over the hovered finding's lines
+
+**Prompt:** "ok maybe too big text! Shrink back so it is increased by only 15% relative to original value. can you draw a light yellow box over the lines that are the subject of the current review (i.e., the review where my mouse has the focus)?"
+
+**Changes:** Version 1.0.2 → 1.0.3. Lint clean, 43/43 tests pass, build OK; the bundle's runtime requires are `obsidian`, `@codemirror/state` and `@codemirror/view`, all supplied by Obsidian on desktop and mobile. Files copied to VaultSchar; **not reloaded** because a review was in progress (6.2.4 Computing average partial effects, 8 open items), so 1.0.3 takes effect on the next reload or Obsidian restart.
+
+| # | Issue | Fix |
+|---|---|---|
+| 1 | Text 25% larger was too big | Panel root `font-size` 125% → 115%; inner sizes are relative, so everything follows |
+| 2 | No visual link in the note to the finding being looked at | New `src/cm-highlight.ts`: a CodeMirror 6 state field with line decorations draws a light yellow box (translucent yellow background, thin border, rounded top and bottom) over every line the finding's quote spans. It shows on hover (desktop) or tap/focus (iOS), moves as you move between cards, follows edits, and clears when the pointer leaves the panel, the card disappears (applied/ignored/new review), you switch notes, or the panel closes. Registered with `registerEditorExtension`. This is the only module that uses the undocumented `editor.cm`, checked with `instanceof EditorView` (targeted at Obsidian 1.14.4 / @codemirror/view 6.43.13). Added `@codemirror/state` 6.7.6 and `@codemirror/view` 6.43.13 as exact-pinned devDependencies, matching Obsidian's versions |
