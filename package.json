@@ -1,0 +1,40 @@
+{
+	"name": "note-check",
+	"version": "1.0.0",
+	"description": "Review notes for technical errors with Claude in an Obsidian sidebar pane",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
+		"check-types": "tsc --noEmit --skipLibCheck",
+		"lint": "eslint src tests",
+		"format": "prettier --write \"src/**/*.ts\"",
+		"format:check": "prettier --check \"src/**/*.ts\"",
+		"test": "vitest run"
+	},
+	"keywords": [
+		"obsidian",
+		"claude",
+		"review",
+		"sidebar"
+	],
+	"author": "Josh Glazer",
+	"license": "MIT",
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@types/node": "^25.9.3",
+		"builtin-modules": "^5.2.0",
+		"esbuild": "0.28.1",
+		"eslint": "^10.5.0",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-obsidianmd": "^0.3.0",
+		"obsidian": "latest",
+		"prettier": "^3.8.4",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.61.0",
+		"vitest": "~5.0.5"
+	},
+	"dependencies": {
+		"@anthropic-ai/sdk": "~1.3.0"
+	}
+}
